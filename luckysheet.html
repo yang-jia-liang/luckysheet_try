@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        #luckysheet {
+
+            width: 100%;
+            height: 600px;
+        }
+    </style>
+
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css' />
+    <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css' />
+<!--    <script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js"></script>-->
+    <script src="plugin.js"></script>
+    <script src="luckysheet.umd.js"></script>
+</head>
+<body>
+<button onclick="search()">查找内容为rq的单元格</button>
+<button onclick="replace()">替换内容rq为日期</button>
+<button onclick="insertImage()">插入图片</button>
+<button onclick="setTextWrap()">设置所有单元格自动换行</button>
+<button onclick="getConfig()">获取表格数据和配置</button>
+<button onclick="getShot()">表格截图</button>
+
+<div id="luckysheet"></div>
+
+</body>
+</html>
+<script>
+    var allSheetData; // 表格所有数据
+    var range = [];   // 表格选中区域
+
+    luckysheet.create({
+        container: 'luckysheet', // luckysheet为容器id
+        lang: 'zh',              // 设定表格语言
+        rowHeaderWidth: 46,      // 行标题区域的宽度，如果设置为0，则表示隐藏行标题
+        data: [
+            {
+                name: '工作表名称',
+                row: 10,                 // 行数
+                column: 10,              // 列数
+                // defaultRowHeight: 19, // 自定义行高
+                // defaultColWidth: 73,  // 自定义列宽
+                // 初始化使用的单元格数据
+                celldata: [
+                    {
+                        r: '0',
+                        c: '1',
+                        v: {
+                            m: 'img \r\n 555 123',
+                            v: 'img \r\n 555 123',
+                            fc: '#ff0000',
+                            tb: 2, // 内容超出自动换行
+                        }
+                    },
+                    {
+                        r: '0',
+                        c: '3',
+                        v: {
+                            m: 'rq',
+                            v: 'rq',
+                        }
+                    },
+                    {
+                        r: '0',
+                        c: '5',
+                        v: {
+                            m: 'rq',
+                            v: 'rq',
+                        }
+                    },
+                    {
+                        r: '3',
+                        c: '5',
+                        v: {
+                            m: 'img',
+                            v: 'img',
+                        }
+                    }
+                ]
+            }
+        ],
+        hook: {
+            // 表格创建之后触发
+            workbookCreateAfter:function(allConfig){
+                console.log(allConfig);
+
+                luckysheet.find("\n").forEach(({ row, column }, index, arr) => {
+                    luckysheet.setRangeShow({ row:[row], column:[column] }, {
+                        success: () => {
+                            // 进入编辑模式，让换行生效
+                            luckysheet.enterEditMode({
+                                success: () => {
+                                    if (index === arr.length - 1) {
+                                        // 退出编辑模式
+                                        luckysheet.exitEditMode();
+
+                                        // 选中第一个格子
+                                        luckysheet.setRangeShow({ row:[0], column:[0] }, {
+                                            show: false, // 选中状态不要高亮
+                                        })
+                                    }
+                                }
+                            });
+                        }
+                    })
+                });
+
+                allSheetData = luckysheet.getSheetData();
+            },
+
+            // 所有单元格渲染之前执行
+            cellRenderAfter: function (cell, postion, sheet, ctx) {
+                const { start_r, start_c, end_r, end_c } = postion;
+                // console.log(postion);
+                // console.log(ctx);
+                // console.log(ctx.canvas.toDataURL("image/png"));
+            },
+
+            imageInsertAfter: function(p1) {
+                console.log(p1);
+            }
+        }
+    });
+
+
+    // bug.getConfig()
+    // bug.setConfig()
+    // todo luckysheet.getAllSheets() 获取所有工作表配置信息
+
+    // 根据内容查找格子
+    function search() {
+        console.log(luckysheet.find("rq")); // 返回数组
+    }
+
+    // 设置所有单元格自动换行
+    // 需要先设置换行，再写入值，才有效果。先设置值，再设置换行，没有效果
+    function setTextWrap() {
+        const rowNum = allSheetData.length;    // 表格行数
+        const colNum = allSheetData[0].length; // 表格列数
+
+        for (let _row = 0; _row < rowNum; _row++) {
+            for (let _col = 0; _col < colNum; _col++) {
+                luckysheet.setCellValue(_row, _col, {
+                    tb: 2,
+                    // bg: "#FF0000"
+                }, {
+                    // 是否刷新界面，默认true，多单元格赋值时控制节流，前面单元格置为false，最后一个单一个置为true
+                    isRefresh: _row === rowNum - 1 && _col === colNum - 1,
+                    success: () => {}
+                })
+            }
+        }
+    }
+
+    // 替换格子内容
+    function replace() {
+        range = luckysheet.getRange(); // 存放原来的选中区域
+
+        luckysheet.find("rq").forEach(({ row, column }, index, arr) => {
+            luckysheet.setCellValue(row, column, {
+                  m: '2020- \r\n 星期日',
+                  v: '2020- \r\n 星期日',
+                  tb: 2,
+                  isRefresh: true, // 是否刷新界面，默认true，多单元格赋值时控制节流，前面单元格置为false，最后一个单一个置为true
+            }, {
+                success: () => {
+                    // 先选中
+                    luckysheet.setRangeShow({ row:[row], column:[column] });
+
+                    // 再进入编辑模式，让换行生效
+                    luckysheet.enterEditMode({
+                        success: () => {
+                            if (index === arr.length - 1) {
+                                // 退出编辑模式
+                                luckysheet.exitEditMode();
+
+                                // 选中替换前的选区
+                                luckysheet.setRangeShow({ row: range[0].row, column: range[0].column })
+                            }
+                        }
+                    });
+                }
+            });
+        })
+    }
+
+    // 插入图片
+    function insertImage() {
+        /** @desc mc是合并单元格后的数据 */
+        luckysheet.find("img").forEach(({ row, column, mc }) => {
+            const cellWidth = luckysheet.getColumnWidth([column])[column];
+            const cellHeight = luckysheet.getRowHeight([row])[row];
+
+            console.log(cellWidth);
+            console.log(cellHeight);
+
+            let img = new Image();
+            img.src = './demo.jpg';
+            img.width = cellWidth * (mc?.cs || 1);
+            img.height = cellHeight * (mc?.rs || 1);
+
+            img.onload = function () {
+                let canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                const context = canvas.getContext('2d');
+                context.drawImage(img, 0, 0, this.width, this.height);
+                const dataUrl = canvas.toDataURL("image/png");
+
+                luckysheet.clearCell(row, column);
+                luckysheet.insertImage(dataUrl, {
+                    order: 0,
+                    rowIndex: row,
+                    colIndex: column,
+                    success: () => {
+                        // 【源代码】src/controllers/imageCtrl.js:677 fixme  插入图片 宽/高内部设置为400
+                    }
+                });
+            }
+        })
+    }
+
+    // 获取表格数据和配置
+    function getConfig() {
+        console.log(luckysheet.getAllSheets());
+    }
+
+    // 表格截图
+    // 获取表格图片
+    function getShot() {
+        luckysheet.setRangeShow({ row: [0, allSheetData.length - 1], column: [0, allSheetData[0].length - 1] }, {
+                success: () => {
+                    const shot = luckysheet.getScreenshot({ row: [0, allSheetData.length - 1], column: [0, allSheetData[0].length - 1] });
+                    let { ch_width, rh_height, images = {} } = luckysheet.getAllSheets()[0];
+
+                    if (Object.keys(images).length) {
+                        let canvas = document.createElement('canvas');
+                        canvas.width = ch_width;
+                        canvas.height = rh_height;
+                        const context = canvas.getContext('2d');
+
+                        const img = new Image();
+                        img.src = shot;
+                        img.width = ch_width;
+                        img.height = rh_height;
+
+                        img.onload = function () {
+                            context.drawImage(img, 0, 0, this.width, this.height);
+                            const dataUrl = canvas.toDataURL("image/png");
+
+                            Object.values(images).forEach((image, index, arr) => {
+                                const img = new Image();
+                                img.src = image.src;
+                                img.width = image.originWidth;
+                                img.height = image.originHeight;
+
+                                img.onload = function () {
+                                    context.drawImage(img, image.default.left, image.default.top, this.width, this.height);
+
+                                    if (index === arr.length - 1) {
+                                        const dataUrl = canvas.toDataURL("image/png");
+                                    }
+                                }
+                            })
+                        };
+                    }
+                }
+            }
+        )
+    }
+</script>
